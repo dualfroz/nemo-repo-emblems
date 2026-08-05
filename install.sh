@@ -1,40 +1,80 @@
 #!/usr/bin/env bash
-# Installs the nemo-repo-emblems extension for the current user:
-#   - symlinks the extension .py into ~/.local/share/nemo-python/extensions/
-#   - symlinks the bundled emblem SVGs into ~/.local/share/icons/hicolor/scalable/emblems/
-#   - creates ~/.config/nemo-repo-emblems.json from the bundled default if missing
-#   - refreshes the icon cache and restarts nemo
+# Installs the nemo-repo-emblems plugin for the current user. No root needed.
+#
+#   ./install.sh          link the plugin (edits in this checkout go live)
+#   ./install.sh --copy   copy the plugin instead of linking it
+#
+# Requires nemo-repo-core: https://github.com/dualfroz/nemo-repo-core
 set -euo pipefail
 
-SRC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+sourceDir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+dataHome="${XDG_DATA_HOME:-$HOME/.local/share}"
+extensionsDir="$dataHome/nemo-python/extensions"
+coreDir="$dataHome/nemo-repo-core"
+pluginFile="nemoRepoEmblems.py"
 
-EXT_DIR="$HOME/.local/share/nemo-python/extensions"
-ICON_DIR="$HOME/.local/share/icons/hicolor/scalable/emblems"
-CONFIG_PATH="$HOME/.config/nemo-repo-emblems.json"
-
-mkdir -p "$EXT_DIR" "$ICON_DIR" "$(dirname "$CONFIG_PATH")"
-
-ln -sf "$SRC_DIR/nemo_repo_emblems.py" "$EXT_DIR/nemo_repo_emblems.py"
-echo "Linked extension -> $EXT_DIR/nemo_repo_emblems.py"
-
-for svg in "$SRC_DIR"/emblems/*.svg; do
-  ln -sf "$svg" "$ICON_DIR/$(basename "$svg")"
-done
-echo "Linked emblem icons -> $ICON_DIR"
-
-if [ ! -f "$CONFIG_PATH" ]; then
-  cp "$SRC_DIR/config.default.json" "$CONFIG_PATH"
-  echo "Created default config -> $CONFIG_PATH"
-else
-  echo "Config already exists, left untouched -> $CONFIG_PATH"
+mode="link"
+if [ "${1:-}" = "--copy" ]; then
+  mode="copy"
+elif [ -n "${1:-}" ]; then
+  echo "usage: $0 [--copy]" >&2
+  exit 2
 fi
+
+if [ ! -d "$coreDir/nemoRepoCore" ] && ! python3 -c "import nemoRepoCore" >/dev/null 2>&1; then
+  cat >&2 <<'MESSAGE'
+nemo-repo-core is not installed, and this plugin is nothing without it:
+
+  git clone https://github.com/dualfroz/nemo-repo-core
+  cd nemo-repo-core && ./install.sh
+MESSAGE
+  exit 1
+fi
+
+mkdir -p "$extensionsDir"
+target="$extensionsDir/$pluginFile"
+rm -f "$target"
+if [ "$mode" = "copy" ]; then
+  cp "$sourceDir/$pluginFile" "$target"
+  echo "Copied plugin -> $target"
+else
+  ln -s "$sourceDir/$pluginFile" "$target"
+  echo "Linked plugin -> $target"
+fi
+
+iconDir="$dataHome/icons/hicolor/scalable/emblems"
+mkdir -p "$iconDir"
+for svg in "$sourceDir"/emblems/*.svg; do
+  name="$(basename "$svg")"
+  rm -f "$iconDir/$name"
+  if [ "$mode" = "copy" ]; then
+    cp "$svg" "$iconDir/$name"
+  else
+    ln -s "$svg" "$iconDir/$name"
+  fi
+done
+echo "Installed emblem icons -> $iconDir"
 
 if command -v gtk-update-icon-cache >/dev/null 2>&1; then
-  gtk-update-icon-cache -f -t "$HOME/.local/share/icons/hicolor" 2>/dev/null || true
+  gtk-update-icon-cache -f -t "$dataHome/icons/hicolor" >/dev/null 2>&1 || true
 fi
 
-echo "Restarting nemo..."
-nemo -q || true
-(nemo --no-desktop >/dev/null 2>&1 &) || true
+if ! PYTHONPATH="$coreDir:$extensionsDir" python3 -c "import nemoRepoEmblems" >/dev/null 2>&1; then
+  echo >&2
+  echo "The plugin did not import cleanly:" >&2
+  PYTHONPATH="$coreDir:$extensionsDir" python3 -c "import nemoRepoEmblems" >&2 || true
+  exit 1
+fi
+echo "Import check passed."
 
-echo "Done. Edit $CONFIG_PATH to toggle indicators/actions (live-reloaded, no restart needed)."
+legacyExtension="$extensionsDir/nemo_repo_emblems.py"
+if [ -e "$legacyExtension" ]; then
+  echo
+  echo "WARNING: the pre-split single file extension is still installed:"
+  echo "  $legacyExtension"
+  echo "Running both duplicates emblems, columns and menu entries. Remove it with:"
+  echo "  rm \"$legacyExtension\""
+fi
+
+echo
+echo "Restart Nemo to load the plugin:  nemo -q"
