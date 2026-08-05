@@ -1,0 +1,11 @@
+{
+  "indicators": {
+    "git_repo": { "enabled": true, "emblem": "emblem-repo-git" },
+    "claude_dir": { "enabled": true, "emblem": "emblem-repo-claude", "marker_directory": ".claude" },
+    "uncommitted_changes": { "enabled": true, "emblem": "emblem-repo-dirty" },
+    "unpushed_commits": { "enabled": true, "emblem": "emblem-repo-unpushed" },
+
+    "node_project": { "enabled": false, "emblem": "emblem-important", "marker_file": "package.json" },
+    "virtualenv": { "enabled": false, "emblem": "emblem-symbolic-link", "marker_directory": ".venv" }
+  }
+}
