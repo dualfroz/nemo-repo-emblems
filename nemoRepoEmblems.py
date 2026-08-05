@@ -37,7 +37,7 @@ from nemoRepoCore import (coreConfig, findRepoRoot, hasMarkerDirectory,
                           localDirectoryPath, pluginLogger, repoCache,
                           requireCore)
 
-requireCore("1.0.0")
+requireCore("0.1.0")
 
 logger = pluginLogger("emblems")
 
