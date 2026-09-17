@@ -1,14 +1,4 @@
 #!/usr/bin/python3
-"""nemo-repo-emblems: emblem overlays for repository folders in Nemo.
-
-Four indicators ship by default: the folder is a git repository, it holds a
-.claude directory, its working tree is dirty, it has commits the remote does
-not. Indicators are declared in the config file, so extra ones can be added
-without touching this file.
-
-Requires nemo-repo-core: https://github.com/dualfroz/nemo-repo-core
-"""
-
 import importlib.util
 import os
 import sys
@@ -73,7 +63,6 @@ coreConfig.registerDefaults(pluginDefaults)
 
 
 def _enabledIndicators():
-    """Config entries that are switched on and name an emblem, by key."""
     active = {}
     for key, entry in coreConfig.section("indicators").items():
         if not isinstance(entry, dict) or not entry.get("enabled"):
