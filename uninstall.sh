@@ -1,13 +1,12 @@
 #!/usr/bin/env bash
-# Removes this plugin from Nemo. The core, the other plugins and the config
-# file are left alone.
 set -euo pipefail
 
+sourceDir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 dataHome="${XDG_DATA_HOME:-$HOME/.local/share}"
 extensionsDir="$dataHome/nemo-python/extensions"
 target="$extensionsDir/nemoRepoEmblems.py"
 
-if [ -e "$target" ]; then
+if [ -e "$target" ] || [ -L "$target" ]; then
   rm -f "$target"
   echo "Removed $target"
 else
@@ -17,10 +16,11 @@ fi
 rm -f "$extensionsDir/__pycache__/nemoRepoEmblems".*.pyc
 
 iconDir="$dataHome/icons/hicolor/scalable/emblems"
-for name in emblem-repo-git emblem-repo-claude emblem-repo-dirty emblem-repo-unpushed; do
-  if [ -e "$iconDir/$name.svg" ]; then
-    rm -f "$iconDir/$name.svg"
-    echo "Removed $iconDir/$name.svg"
+for svg in "$sourceDir"/emblems/*.svg; do
+  name="$(basename "$svg")"
+  if [ -e "$iconDir/$name" ] || [ -L "$iconDir/$name" ]; then
+    rm -f "$iconDir/$name"
+    echo "Removed $iconDir/$name"
   fi
 done
 
